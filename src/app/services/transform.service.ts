@@ -6,31 +6,25 @@ import { LanguagesType } from '../enums/languagesType';
   providedIn: 'root'
 })
 export class TransformService {
-  transformPassword(rawData: {language: LanguagesType, phrase: string, options: IPasswordOptions}): string {
-    const splitPhrase: string[] = rawData.phrase.split(' ');
-    let joinPhrase = '';
+  transformPassword(rawData: IRawData): string {
+    const splitedPhrase: string[] = rawData.phrase.split(' ');
 
-    if (splitPhrase.length > 1) {
-      joinPhrase = splitPhrase
-        .map(word => {
-          return this.transformWord(word);
-        })
+    if (splitedPhrase.length > 1) {
+      return splitedPhrase
+        .map(word => this.transformWord(word, rawData.options))
         .join('')
     } else {
-      return this.transformWord(splitPhrase[0]);
+      return this.transformWord(splitedPhrase[0], rawData.options);
     }
-
-  console.log(joinPhrase)
-
-    return joinPhrase;
-    // return 'Y0urP@ssW0rD'
   }
 
   uppercaseFirstLetter(word: string): string {
     return word.charAt(0).toUpperCase() + word.slice(1);
   }
 
-  private transformWord(word: string): string {
+  private transformWord(word: string, options: IPasswordOptions): string {
+    console.log(options);
+    
     word = this.uppercaseFirstLetter(word);
     word = this.replaceALetter(word);
     word = this.replaceBLetter(word);

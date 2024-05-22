@@ -4,14 +4,18 @@
 }
 
 export interface IRawData {
-  languages: number;
+  language: number;
   phrase: string;
   options: IPasswordOptions;
 }
 
+// export interface IPasswordOptions {
+//   numbers: boolean;
+//   symbols: boolean;
+//   uppercase: boolean;
+//   lowercase: boolean;
+// }
+
 export interface IPasswordOptions {
-  numbers: boolean;
-  symbols: boolean;
-  uppercase: boolean;
-  lowercase: boolean;
+  [key: string]: boolean[];
 }
