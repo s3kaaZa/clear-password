@@ -1,4 +1,8 @@
-﻿export interface ISelectData {
+﻿import { SubstitutionWithNumbersEnType, SubstitutionWithSymbolsEnType } from "../enums/transformOptionsType";
+
+type PasswordOptionPropertyName =  'numbers' | 'symbols' | 'uppercase' | 'lowercase';
+type PasswordOptionsRecord = { [P in PasswordOptionPropertyName]: boolean[] };
+export interface ISelectData {
   id: number;
   value: string;
 }
@@ -9,13 +13,6 @@ export interface IRawData {
   options: IPasswordOptions;
 }
 
-// export interface IPasswordOptions {
-//   numbers: boolean;
-//   symbols: boolean;
-//   uppercase: boolean;
-//   lowercase: boolean;
-// }
+export interface IPasswordOptions extends PasswordOptionsRecord {}
 
-export interface IPasswordOptions {
-  [key: string]: boolean[];
-}
+export type SubstitutionEnType = keyof typeof SubstitutionWithNumbersEnType | keyof typeof SubstitutionWithSymbolsEnType;
