@@ -1,27 +1,52 @@
+// export enum NumberOptionsType {
+//     'All',
+//     'One for the entire phrase',
+//     'None'
+// }
+
+// export enum SymbolOptionsType {
+//     'All',
+//     'One in every word',
+//     'One for the entire phrase',
+//     'None'
+// }
+
+// export enum UppercaseOptionsType {
+//     'All',
+//     'First letter per word',
+//     'One for the entire phrase',
+//     'One letter per word',
+//     'None'
+// }
+
+// export enum LowercaseOptionsType {
+//     'Lowercase letters',
+//     'None'
+// }
 export enum NumberOptionsType {
-    'All',
-    'One for the entire phrase',
-    'None'
+    All = 'All',
+    OneInPhrase = 'One for the entire phrase',
+    None = 'None'
 }
 
 export enum SymbolOptionsType {
-    'All',
-    'One in every word',
-    'One for the entire phrase',
-    'None'
+    All = 'All',
+    OneInWord = 'One in every word',
+    OneInPhrase = 'One for the entire phrase',
+    None = 'None'
 }
 
 export enum UppercaseOptionsType {
-    'All',
-    'First letter per word',
-    'One for the entire phrase',
-    'One letter per word',
-    'None'
+    All = 'All',
+    FirstLetter = 'First letter per word',
+    OneInPhrase = 'One for the entire phrase',
+    OneInWord = 'One letter per word',
+    None = 'None'
 }
 
 export enum LowercaseOptionsType {
-    'Lowercase letters',
-    'None'
+    Lowercase = 'Lowercase letters',
+    None = 'None'
 }
 
 export enum SubstitutionWithNumbersEnType {
@@ -41,7 +66,7 @@ export enum SubstitutionWithSymbolsEnType {
     i = '!',
     n = '&',
     s = '$',
-    v = '\/',
-    w = '\/\/',
+    v = '\\/',
+    w = '\\/\\/',
     x = '}{'
 }

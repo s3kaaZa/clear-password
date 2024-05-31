@@ -7,34 +7,18 @@ import {
   SymbolOptionsType,
   UppercaseOptionsType
 } from '../enums/transformOptionsType';
+import { ALL, FIRSTLETTER, NONE, PHRASE, WORD } from '../consts/create-password.consts';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TransformService {
   transformPassword(rawData: IRawData): string {
-    const { language, phrase, options } = rawData;
-    let splitedPhrase: string[] = this.splitPhrase(phrase);
+    let { language, phrase, options } = rawData;
 
-    if (options.uppercase[UppercaseOptionsType.All]) {
-      this.convertToUpperCase(phrase);
-    }
+    phrase = this.checkSpecificOptionsForEntirePhrase(phrase, options.uppercase);
 
-    if (options.uppercase[UppercaseOptionsType.None]) {
-      this.convertToLowerCase(phrase);
-    }
-
-    if (options.uppercase[UppercaseOptionsType['One for the entire phrase']]) {
-      splitedPhrase = this.addOneUppercaseLetter(this.convertToLowerCase(phrase));
-    }
-
-    if (options.numbers[NumberOptionsType['One for the entire phrase']]) {
-      splitedPhrase = this.addOneNumber(splitedPhrase);
-    }
-
-    if (options.symbols[SymbolOptionsType['One for the entire phrase']]) {
-      splitedPhrase = this.addOneSymbol(splitedPhrase);
-    }
+    let splitedPhrase: string[] = this.checkSpecificOptionsForSplitedPhrase(this.splitPhrase(phrase), options);
 
     if (splitedPhrase.length > 1) {
       return splitedPhrase
@@ -45,53 +29,76 @@ export class TransformService {
     }
   }
 
+  private checkSpecificOptionsForEntirePhrase(phrase: string, options: boolean[]): string {
+    if (options[this.getCheckboxIndex(UppercaseOptionsType, ALL)]) {
+      console.log(111);
+
+      return phrase = this.convertToUppercase(phrase);
+    }
+
+    if (options[this.getCheckboxIndex(UppercaseOptionsType, NONE)]) {
+      return phrase = this.convertToLowercase(phrase);
+    }
+
+    return phrase;
+  }
+
+  private checkSpecificOptionsForSplitedPhrase(splitedPhrase: string[], options: IPasswordOptions): string[] {
+    const prop = 'One for the entire phrase';
+    const prop1 = 'OneInPhrase';
+
+    if (options.uppercase[this.getCheckboxIndex(UppercaseOptionsType, PHRASE)]) {
+      splitedPhrase = this.addOneUppercaseLetter(splitedPhrase);
+    }
+
+    if (options.numbers[this.getCheckboxIndex(NumberOptionsType, PHRASE)]) {
+      splitedPhrase = this.addOneNumber(splitedPhrase);
+    }
+
+    if (options.symbols[this.getCheckboxIndex(SymbolOptionsType, PHRASE)]) {
+      splitedPhrase = this.addOneSymbol(splitedPhrase);
+    }
+
+    return splitedPhrase;
+  }
+
 
   private transformWord(word: string, options: IPasswordOptions): string {
-    // console.log(Object.keys(options));
     options.uppercase.forEach((option, i) => {
-      if (option && i === UppercaseOptionsType.All) {
+      if (option && i === this.getCheckboxIndex(UppercaseOptionsType, ALL)) {
         word = this.uppercaseAllLetters(word);
       }
 
-      if (option && i === UppercaseOptionsType['First letter per word']) {
+      if (option && i === this.getCheckboxIndex(UppercaseOptionsType, FIRSTLETTER)) {
         word = this.uppercaseFirstLetter(word);
       }
 
-      if (option && i === UppercaseOptionsType['One letter per word']) {
+      if (option && i === this.getCheckboxIndex(UppercaseOptionsType, WORD)) {
         word = this.uppercaseOneLetter(word);
-      }
-
-
-      if (option && i === UppercaseOptionsType.None) {
-        return;
       }
     })
 
     options.numbers.forEach((option, i) => {
-      if (option && i === NumberOptionsType.All) {
+      if (option && i === this.getCheckboxIndex(NumberOptionsType, ALL)) {
         word = this.replaceAllLettersToNumbers(word);
-      }
-
-      if (option && i === NumberOptionsType.None) {
-        return;
       }
     })
 
     options.symbols.forEach((option, i) => {
-      if (option && i === SymbolOptionsType.All) {
+      if (option && i === this.getCheckboxIndex(SymbolOptionsType, ALL)) {
         word = this.replaceAllLettersToSymbols(word);
       }
 
-      if (option && i === SymbolOptionsType['One in every word']) {
+      if (option && i === this.getCheckboxIndex(SymbolOptionsType, ALL)) {
         word = this.replaceOneLetterToSymbol(word);
-      }
-
-      if (option && i === SymbolOptionsType.None) {
-        return;
       }
     })
 
     return word;
+  }
+
+  getCheckboxIndex(options: {[key: string]: string}, prop: string): number {
+    return Object.keys(options).indexOf(prop)
   }
 
   private uppercaseAllLetters(word: string): string {
@@ -144,8 +151,7 @@ export class TransformService {
     return word;
   }
 
-  private addOneUppercaseLetter(phrase: string): string[] {
-    const splitedPhrase = this.splitPhrase(phrase);
+  private addOneUppercaseLetter(splitedPhrase: string[]): string[] {
     const randomWordNumber = this.randomIntFromInterval(0, splitedPhrase.length - 1);
 
     splitedPhrase[randomWordNumber] = this.uppercaseOneLetter(splitedPhrase[randomWordNumber]);
@@ -156,7 +162,7 @@ export class TransformService {
   private addOneNumber(splitedPhrase: string[]): string[] {
     const randomWordNumber = this.randomIntFromInterval(0, splitedPhrase.length - 1);
     const matches = this.foundMatches(splitedPhrase[randomWordNumber], 'number') as (keyof typeof SubstitutionWithNumbersEnType)[];
-    const randomLetter = matches && matches.length > 1 ? this.randomIntFromInterval(0, matches.length -1) : 0;
+    const randomLetter = matches && matches.length > 1 ? this.randomIntFromInterval(0, matches.length - 1) : 0;
 
     splitedPhrase[randomWordNumber] = this.replaceOneLetterToNumber(splitedPhrase[randomWordNumber], matches[randomLetter]);
 
@@ -167,12 +173,12 @@ export class TransformService {
     const randomWordNumber = this.randomIntFromInterval(0, splitedPhrase.length - 1);
     const randomWord = splitedPhrase[randomWordNumber];
     const matches = this.foundMatches(randomWord, 'symbol') as (keyof typeof SubstitutionWithSymbolsEnType)[];
-    const randomLetterPositionInMatches = matches && matches.length > 1 ? this.randomIntFromInterval(0, matches.length -1) : 0;
+    const randomLetterPositionInMatches = matches && matches.length > 1 ? this.randomIntFromInterval(0, matches.length - 1) : 0;
     const letter = matches[randomLetterPositionInMatches];
     const letterPositionInWord = randomWord.indexOf(letter);
 
-    splitedPhrase[randomWordNumber] = matches.length ? 
-      randomWord.slice(0, letterPositionInWord) + SubstitutionWithSymbolsEnType[letter] + randomWord.slice(letterPositionInWord + 1):
+    splitedPhrase[randomWordNumber] = matches.length ?
+      randomWord.slice(0, letterPositionInWord) + SubstitutionWithSymbolsEnType[letter] + randomWord.slice(letterPositionInWord + 1) :
       this.addSimbolInRandomPosition(splitedPhrase[randomWordNumber]);
 
     return splitedPhrase;
@@ -186,11 +192,11 @@ export class TransformService {
     return word.slice(0, position) + randomSymbol + word.slice(position + 1);
   }
 
-  private convertToLowerCase(text: string): string {
+  private convertToLowercase(text: string): string {
     return text.toLowerCase();
   }
 
-  private convertToUpperCase(text: string): string {
+  private convertToUppercase(text: string): string {
     return text.toUpperCase();
   }
 
@@ -210,7 +216,7 @@ export class TransformService {
         matches = Object.keys(SubstitutionWithSymbolsEnType).filter(letter => word.includes(letter)) as (keyof typeof SubstitutionWithSymbolsEnType)[];
         break;
     }
-    
+
     return matches;
   }
 

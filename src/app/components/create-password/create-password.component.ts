@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
-import { FormArray, FormBuilder, FormControl, Validators } from '@angular/forms';
+import { Component, OnInit, inject } from '@angular/core';
+import { FormArray, FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { LanguagesType } from '../../enums/languagesType';
-import { IPasswordOptions, ISelectData } from '../../models/password.model';
+import { CheckboxOption, IPasswordOptions, ISelectData } from '../../models/password.model';
 import { TransformService } from '../../services/transform.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { LowercaseOptionsType, NumberOptionsType, SymbolOptionsType, UppercaseOptionsType } from '../../enums/transformOptionsType';
+import { ALL, FIRSTLETTER, LOWERCASE, NONE, PHRASE } from '../../consts/create-password.consts';
 
 @Component({
   selector: 'app-create-password',
@@ -12,70 +13,14 @@ import { LowercaseOptionsType, NumberOptionsType, SymbolOptionsType, UppercaseOp
   styleUrl: './create-password.component.scss'
 })
 export class CreatePasswordComponent implements OnInit {
-  defaultNumberCheckboxes = [
-    {
-      name: NumberOptionsType[0],
-      checked: false
-    },
-    {
-      name: NumberOptionsType[1],
-      checked: true
-    },
-    {
-      name: NumberOptionsType[2],
-      checked: false
-    }
-  ];
-  defaultSymbolCheckboxes = [
-    {
-      name: SymbolOptionsType[0],
-      checked: false
-    },
-    {
-      name: SymbolOptionsType[1],
-      checked: false
-    },
-    {
-      name: SymbolOptionsType[2],
-      checked: true
-    },
-    {
-      name: SymbolOptionsType[3],
-      checked: false
-    }
-  ];
-  defaultUppercaseCheckboxes = [
-    {
-      name: UppercaseOptionsType[0],
-      checked: false
-    },
-    {
-      name: UppercaseOptionsType[1],
-      checked: true
-    },
-    {
-      name: UppercaseOptionsType[2],
-      checked: false
-    },
-    {
-      name: UppercaseOptionsType[3],
-      checked: false
-    },
-    {
-      name: UppercaseOptionsType[4],
-      checked: false
-    }
-  ];
-  defaultLowercaseCheckboxes = [
-    {
-      name: LowercaseOptionsType[0],
-      checked: true
-    },
-    {
-      name: LowercaseOptionsType[1],
-      checked: false
-    }
-  ];
+  defaultNumberCheckboxeIndex: number;
+  defaultSymbolCheckboxeIndex: number;
+  defaultUppercaseCheckboxeIndex: number;
+  defaultLowercaseCheckboxeIndex: number;
+  defaultNumberCheckboxes: CheckboxOption[];
+  defaultSymbolCheckboxes: CheckboxOption[];
+  defaultUppercaseCheckboxes: CheckboxOption[];
+  defaultLowercaseCheckboxes: CheckboxOption[];
   isLinear = false;
   languages: any;
   languagesOption: ISelectData[];
@@ -86,52 +31,66 @@ export class CreatePasswordComponent implements OnInit {
   phraseFormGroup = this.fb.group({
     phrase: new FormControl('red crocodile with horns', Validators.required) // TODO: delete value
   })
-  optionsFormGroup = this.fb.group({
-    numbers: this.fb.array(this.defaultNumberCheckboxes.map(cb => this.fb.control<boolean>(cb.checked))),
-    symbols: this.fb.array(this.defaultSymbolCheckboxes.map(cb => this.fb.control<boolean>(cb.checked))),
-    uppercase: this.fb.array(this.defaultUppercaseCheckboxes.map(cb => this.fb.control<boolean>(cb.checked))),
-    lowercase: this.fb.array(this.defaultLowercaseCheckboxes.map(cb => this.fb.control<boolean>(cb.checked)))
-  });
+  optionsFormGroup: FormGroup;
   calculatedPasswordFormGroup = this.fb.group({
     password: new FormControl('')
   });
 
+  private transformService = inject(TransformService);
+  private sb = inject(MatSnackBar);
+
   constructor(
     private fb: FormBuilder,
-    private transformService: TransformService,
-    private sb: MatSnackBar
   ) { }
 
   ngOnInit() {
     this.initLanguages();
+    this.initCheckboxesDefaultState();
+
+    this.optionsFormGroup = this.fb.group({
+      numbers: this.fb.array(this.defaultNumberCheckboxes.map(cb => this.fb.control<boolean>(cb.checked))),
+      symbols: this.fb.array(this.defaultSymbolCheckboxes.map(cb => this.fb.control<boolean>(cb.checked))),
+      uppercase: this.fb.array(this.defaultUppercaseCheckboxes.map(cb => this.fb.control<boolean>(cb.checked))),
+      lowercase: this.fb.array(this.defaultLowercaseCheckboxes.map(cb => this.fb.control<boolean>(cb.checked)))
+    });
+  }
+
+  getCheckboxes(options: { [key: string]: string}): CheckboxOption[] {
+    return Object
+        .values(options)
+        .filter(name => typeof name !== 'number')
+        .map(name => ({
+          name,
+          checked: false
+        }))
   }
 
   get numbers(): FormArray<FormControl<boolean>> {
-    return this.optionsFormGroup.controls.numbers as FormArray<FormControl<boolean>>;
+    return this.optionsFormGroup.controls['numbers'] as FormArray<FormControl<boolean>>;
   }
 
   get symbols(): FormArray<FormControl<boolean>> {
-    return this.optionsFormGroup.controls.symbols as FormArray<FormControl<boolean>>;
+    return this.optionsFormGroup.controls['symbols'] as FormArray<FormControl<boolean>>;
   }
 
   get uppercase(): FormArray<FormControl<boolean>> {
-    return this.optionsFormGroup.controls.uppercase as FormArray<FormControl<boolean>>;
+    return this.optionsFormGroup.controls['uppercase'] as FormArray<FormControl<boolean>>;
   }
 
   get lowercase(): FormArray<FormControl<boolean>> {
-    return this.optionsFormGroup.controls.lowercase as FormArray<FormControl<boolean>>;
+    return this.optionsFormGroup.controls['lowercase'] as FormArray<FormControl<boolean>>;
   }
 
   get hasPharaseValue(): boolean {
     return !this.phraseFormGroup.controls.phrase.value;
   }
 
-  initLanguages() {
+  private initLanguages() {
     this.languages = Object.values(LanguagesType).filter(e => isNaN(Number(e)));
     this.languagesOption = this.languages
-      .map((e: string, i: number) => ({
+      .map((lang: string, i: number) => ({
         id: i,
-        value: e
+        value: lang
       }));
   }
 
@@ -155,27 +114,44 @@ export class CreatePasswordComponent implements OnInit {
   toggleCheckboxes(controls: FormArray, i: number, formArrayName: string) {
     const values = controls.value.map((c: boolean, index: number) => i === index);
 
-    if (formArrayName === 'uppercase' && i === UppercaseOptionsType.All) {
+    if (
+      formArrayName === 'uppercase'
+      && i === this.transformService.getCheckboxIndex(UppercaseOptionsType, ALL)
+    ) {
       this.lowercase.setValue([false, true]);
       this.showSnackBarMessage('Value from "Lowercase letters" was changed!');
     }
 
-    if (formArrayName === 'uppercase' && i === UppercaseOptionsType.None && this.lowercase.value[LowercaseOptionsType.None]) {
+    if (
+      formArrayName === 'uppercase'
+      && i === this.transformService.getCheckboxIndex(UppercaseOptionsType, NONE)
+      && this.lowercase.value[this.transformService.getCheckboxIndex(LowercaseOptionsType, NONE)]
+    ) {
       this.lowercase.setValue([true, false]);
       this.showSnackBarMessage('Value from "Lowercase letters" was changed!');
     }
 
-    if (formArrayName === 'uppercase' && i !== UppercaseOptionsType.All && this.lowercase.value[LowercaseOptionsType.None]) {
+    if (formArrayName === 'uppercase'
+      && i !== this.transformService.getCheckboxIndex(UppercaseOptionsType, ALL)
+      && this.lowercase.value[this.transformService.getCheckboxIndex(LowercaseOptionsType, NONE)]
+    ) {
       this.lowercase.setValue([true, false]);
       this.showSnackBarMessage('Value from "Lowercase letters" was changed!');
     }
 
-    if (formArrayName === 'lowercase' && i === LowercaseOptionsType.None && !this.uppercase.value[UppercaseOptionsType.All]) {
+    if (formArrayName === 'lowercase'
+      && i === this.transformService.getCheckboxIndex(LowercaseOptionsType, NONE)
+      && !this.uppercase.value[this.transformService.getCheckboxIndex(UppercaseOptionsType, ALL)]
+
+    ) {
       this.uppercase.setValue([true, false, false, false, false]);
       this.showSnackBarMessage('Value from "Uppercase letters" was changed!');
     }
 
-    if (formArrayName === 'lowercase' && i !== LowercaseOptionsType.None && this.uppercase.value[UppercaseOptionsType.All]) {
+    if (formArrayName === 'lowercase'
+      && i !== this.transformService.getCheckboxIndex(LowercaseOptionsType, NONE)
+      && this.uppercase.value[this.transformService.getCheckboxIndex(UppercaseOptionsType, ALL)]
+    ) {
       this.uppercase.setValue([false, true, false, false, false]);
       this.showSnackBarMessage('Value from "Uppercase letters" was changed!');
     }
@@ -188,5 +164,20 @@ export class CreatePasswordComponent implements OnInit {
       duration: 3000,
       horizontalPosition: 'center'
     })
+  }
+
+  private initCheckboxesDefaultState() {
+    this.defaultNumberCheckboxes = this.getCheckboxes(NumberOptionsType);
+    this.defaultNumberCheckboxeIndex = this.transformService.getCheckboxIndex(NumberOptionsType, PHRASE);
+    this.defaultNumberCheckboxes[this.defaultNumberCheckboxeIndex].checked = true;
+    this.defaultSymbolCheckboxes = this.getCheckboxes(SymbolOptionsType);
+    this.defaultSymbolCheckboxeIndex = this.transformService.getCheckboxIndex(SymbolOptionsType, PHRASE);
+    this.defaultSymbolCheckboxes[this.defaultSymbolCheckboxeIndex].checked = true;
+    this.defaultUppercaseCheckboxes = this.getCheckboxes(UppercaseOptionsType);
+    this.defaultUppercaseCheckboxeIndex = this.transformService.getCheckboxIndex(UppercaseOptionsType, FIRSTLETTER);
+    this.defaultUppercaseCheckboxes[this.defaultUppercaseCheckboxeIndex].checked = true;
+    this.defaultLowercaseCheckboxes = this.getCheckboxes(LowercaseOptionsType);
+    this.defaultLowercaseCheckboxeIndex = this.transformService.getCheckboxIndex(LowercaseOptionsType, LOWERCASE);
+    this.defaultLowercaseCheckboxes[this.defaultLowercaseCheckboxeIndex].checked = true;
   }
 }

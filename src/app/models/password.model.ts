@@ -7,6 +7,11 @@ export interface ISelectData {
   value: string;
 }
 
+export interface CheckboxOption {
+  name: string;
+  checked: boolean;
+}
+
 export interface IRawData {
   language: number;
   phrase: string;
